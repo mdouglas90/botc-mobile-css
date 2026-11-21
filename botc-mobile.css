@@ -43,6 +43,8 @@
     --m-accent: #55555b;  /* active button (was purple)                      */
     --m-button: #2e2e31;  /* button / tile base                              */
     --m-square: #1e1e20;  /* town square behind the wedges                   */
+    --m-voice-font: 17px; /* text size in the VOICE panel                    */
+    --m-text-font: 17px;  /* text size in the TEXT (chat) panel              */
     --m-bar: #161617f2;   /* tab bar                                         */
   }
 
@@ -798,6 +800,9 @@
   }
   #grimoire #left aside.tab > #tab-text { height: 50% !important; height: calc(var(--m-mid) * .5) !important; }
   #grimoire #left aside.tab > #tab-chat { min-height: 30% !important; }
+  /* voice panel text a bit larger (the app's default here is ~14px) */
+  #grimoire #left aside.tab > #tab-chat { font-size: var(--m-voice-font) !important; }
+  #grimoire #left aside.tab > #tab-text { font-size: var(--m-text-font) !important; }
   #grimoire #left aside.tab > .container > section {
     width: 100% !important;
     height: auto !important;

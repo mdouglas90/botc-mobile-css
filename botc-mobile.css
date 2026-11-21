@@ -42,6 +42,7 @@
     --m-gold: #ffad00;
     --m-accent: #55555b;  /* active button (was purple)                      */
     --m-button: #2e2e31;  /* button / tile base                              */
+    --m-square: #1e1e20;  /* town square behind the wedges                   */
     --m-bar: #161617f2;   /* tab bar                                         */
   }
 
@@ -101,6 +102,8 @@
     align-items: center !important;
     justify-content: center !important;
     overflow: hidden !important;
+    /* dark grey behind the wedges (hides the page background image) */
+    background: var(--m-square) !important;
   }
 
   /* =================================================================

@@ -6,7 +6,8 @@
    so it should survive most app updates).
 
    Layout, top to bottom:
-     [ storyteller squares ..][ day ][ users ][ gear ]   <- top bar
+     [ storyteller squares ...... ][ users ][ gear ]   <- top bar
+     [                            ][ day / alive  ]      (2 rows)
      [            town square (wedges)                 ]   <- middle
      [ VOICE TEXT NPCS BLUFFS CHARS NIGHT 1 NIGHTS    ]   <- tab bar
      [        big MIC button        ][ deafen ]            <- mute bar
@@ -17,11 +18,11 @@
 
   /* ---- Tuning knobs ------------------------------------------------- */
   :root {
-    --m-top: 72px;        /* storyteller bar height                       */
+    --m-top: 144px;       /* storyteller bar height                       */
     --m-tabs: 42px;       /* tab bar height                               */
     --m-mute: 64px;       /* mute bar height (plus iPhone home-bar inset) */
-    --m-ctrl: 104px;      /* width reserved top-right for users + gear    */
-    --m-phase: 86px;      /* width of the day / players-alive badge         */
+    --m-side: 160px;      /* top-right block: users + gear over the day /
+                             players-alive badge                          */
     --m-safe: env(safe-area-inset-bottom, 0px);
 
     --m-bottom: calc(var(--m-tabs) + var(--m-mute) + var(--m-safe));
@@ -148,7 +149,7 @@
 
     /* reminders: between the centre hole and the token */
     --remR: calc(var(--m-in) + (var(--tokR) - var(--tok) / 2 - var(--m-in)) / 2 + 4px);
-    --rem: min(22px, var(--remR) * 0.84 * sin(180deg / var(--n, 8)));
+    --rem: clamp(26px, var(--remR) * 1.1 * sin(180deg / var(--n, 8)), 32px);
 
     /* wedge colours */
     --fillA: #fbf3e2; --fillB: #e7d6b1; --fillC: #c4ab7c; --fillD: #8d7347; --fillE: #5e4a2a;
@@ -316,6 +317,11 @@
     line-height: 1.15 !important;
     border-radius: 6px !important;
     background: #000 !important;
+    /* some cosmetic plates (e.g. "translator") use dark text on their own
+       picture; the picture is gone here, so always use the app's normal
+       light text (it still dims while the player talks) */
+    color: hsl(41, 100%, calc(100% - 50% * var(--speaking, 0))) !important;
+    text-shadow: 0 0 5px #000 !important;
   }
   #grimoire .circle .nameplate .name {
     margin-bottom: 0 !important;
@@ -353,15 +359,48 @@
     align-content: center !important;
     gap: 1px !important;
     z-index: 8;
+    pointer-events: none !important;   /* gaps fall through to "add" */
   }
   #grimoire .circle > li .reminders .reminder {
+    pointer-events: auto !important;
     --reminderZoom: var(--rem) !important;
     width: var(--rem) !important;
     margin: 0 !important;
     transform: none !important;
-    font-size: 6px;
+    font-size: 8px;
+    position: relative;
+    z-index: 2;
   }
-  #grimoire .circle > li .reminders .reminder .text { font-size: 6px !important; }
+  #grimoire .circle > li .reminders .reminder .text { font-size: 8px !important; }
+
+  /* "add reminder": no hover on phones, so the blank token is invisible and
+     becomes the whole inner part of the wedge (centre hole -> art).
+     Real reminders sit on top of it, so they can still be tapped. */
+  #grimoire .circle > li .reminders .reminder.add {
+    --rOut: calc(var(--tokR) - var(--tok) / 2);
+    --a1: calc(var(--rot) - 180deg / var(--n, 8) + var(--m-gap));
+    --a2: calc(var(--rot) + 180deg / var(--n, 8) - var(--m-gap));
+    position: absolute !important;
+    /* a square centred on the town square's centre (measured from the
+       middle of the reminders box, which sits --remR out along the spoke) */
+    left: calc(50% - var(--remR) * var(--s) - var(--rOut)) !important;
+    top: calc(50% + var(--remR) * var(--c) - var(--rOut)) !important;
+    width: calc(2 * var(--rOut)) !important;
+    height: calc(2 * var(--rOut)) !important;
+    padding: 0 !important;
+    aspect-ratio: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    opacity: 0 !important;
+    z-index: 1 !important;
+    clip-path: polygon(
+      calc(var(--rOut) + var(--m-in) * sin(var(--a1))) calc(var(--rOut) - var(--m-in) * cos(var(--a1))),
+      calc(var(--rOut) + var(--rOut) * sin(var(--a1))) calc(var(--rOut) - var(--rOut) * cos(var(--a1))),
+      calc(var(--rOut) + var(--rOut) * sin(var(--a2))) calc(var(--rOut) - var(--rOut) * cos(var(--a2))),
+      calc(var(--rOut) + var(--m-in) * sin(var(--a2))) calc(var(--rOut) - var(--m-in) * cos(var(--a2))));
+  }
 
   /* tapped seat floats above its neighbours */
   #grimoire .circle > li:hover,
@@ -405,7 +444,7 @@
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
-    right: calc(var(--m-ctrl) + var(--m-phase)) !important;
+    right: var(--m-side) !important;
     height: var(--m-top) !important;
     margin: 0 !important;
     padding: 6px !important;
@@ -422,8 +461,11 @@
   }
   #left ul.storytellers > li {
     position: relative !important;
-    flex: none !important;
-    width: calc(var(--m-top) - 12px) !important;
+    /* square for one storyteller; 2-3 share the width */
+    flex: 1 1 0 !important;
+    width: auto !important;
+    min-width: 64px !important;
+    max-width: calc(var(--m-top) - 12px) !important;
     height: calc(var(--m-top) - 12px) !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -460,7 +502,7 @@
     border: 0 !important;
     border-radius: 0 !important;
     background: #000000b3 !important;
-    font-size: 10px !important;
+    font-size: 12px !important;
     line-height: 1.1 !important;
   }
   #left ul.storytellers > li .nameplate::before,
@@ -482,8 +524,8 @@
     top: 0 !important;
     right: 0 !important;
     left: auto !important;
-    width: var(--m-ctrl) !important;
-    height: var(--m-top) !important;
+    width: var(--m-side) !important;
+    height: calc(var(--m-top) / 2) !important;
     min-height: 0 !important;
     padding: 6px !important;
     box-sizing: border-box !important;
@@ -492,15 +534,14 @@
     align-items: stretch !important;
     gap: 6px !important;
     z-index: 105 !important;
-    background: linear-gradient(#000000d9, #00000099);
-    border-bottom: 2px solid var(--m-line);
+    background: #000000d9;
   }
   #controls > .icon.session,
   #controls > .menu > svg {
-    flex: none;
+    flex: 1 1 0;
     box-sizing: border-box !important;
-    width: 44px !important;
-    height: calc(var(--m-top) - 12px) !important;
+    width: auto !important;
+    height: calc(var(--m-top) / 2 - 12px) !important;
     margin: 0 !important;
     padding: 0 !important;
     display: flex !important;
@@ -513,8 +554,8 @@
     border: 2px solid var(--m-line) !important;
     border-radius: 8px !important;
   }
-  #controls > .icon.session svg { font-size: 18px; }
-  #controls > .menu > svg { padding: 14px 10px !important; }
+  #controls > .icon.session svg { font-size: 22px; }
+  #controls > .menu > svg { padding: 14px !important; }
   #controls > .icon:not(.chat):not(.session) { display: none !important; } /* misc icons */
   #controls #notifications {
     position: fixed !important;
@@ -784,24 +825,25 @@
     overflow: auto !important;
   }
 
-  /* phase / players-alive / timer: in the top bar, left of the users button */
+  /* phase / players-alive / timer: in the top bar, under users + settings */
   #version {
     position: fixed !important;
-    top: 0 !important;
-    right: var(--m-ctrl) !important;
+    top: calc(var(--m-top) / 2) !important;
+    right: 0 !important;
     bottom: auto !important;
     left: auto !important;
-    width: var(--m-phase) !important;
-    height: var(--m-top) !important;
+    width: var(--m-side) !important;
+    height: calc(var(--m-top) / 2) !important;
     box-sizing: border-box !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: center !important;
-    align-items: flex-end !important;
+    align-items: center !important;
+    text-align: center !important;
     padding: 2px 6px !important;
     border-radius: 0 !important;
     border-bottom: 2px solid var(--m-line) !important;
-    font-size: 10px !important;
+    font-size: 12px !important;
     line-height: 1.25 !important;
     background: linear-gradient(#000000d9, #00000099) !important;
     z-index: 106 !important;

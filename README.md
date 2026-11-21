@@ -15,7 +15,8 @@ Raw file: https://raw.githubusercontent.com/mdouglas90/botc-mobile-css/main/botc
 ## Layout
 
 ```
-[ storyteller squares ..][ day ][ users ][ gear ]   <- top bar
+[ storyteller squares ...... ][ users ][ gear ]   <- top bar
+[                            ][ day / alive  ]      (2 rows)
 [            town square (wedges)                ]   <- middle
 [ VOICE TEXT NPCS BLUFFS CHARS NIGHT 1 NIGHTS    ]   <- tab bar
 [        big MIC button        ][ deafen ]           <- mute bar

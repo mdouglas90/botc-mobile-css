@@ -33,7 +33,9 @@
     --m-hw: calc(50vw - var(--m-edge));                   /* half width  */
     --m-hh: calc(var(--m-mid) / 2 - var(--m-edge));       /* half height */
     --m-in: 48px;         /* centre hole radius (the vote clock lives here)  */
-    --m-gap: 0.8deg;      /* half the gap between neighbouring wedges        */
+    --m-gap: 6px;         /* gap between neighbouring wedges (same width
+                             all the way out)                             */
+    --m-talk: 8px;        /* thickness of the talking bar                   */
 
     --m-panel: #111112f5;
     --m-line: #000;
@@ -166,12 +168,26 @@
   /* the wedge shape, used by every layer that fills it
      (coordinates are inside a box inset --m-edge from the square) */
   #grimoire .circle > li {
-    --wedge: conic-gradient(
-        from calc(var(--rot) - 180deg / var(--n, 8) + var(--m-gap)) at var(--m-hw) var(--m-hh),
-        #000 0 calc(360deg / var(--n, 8) - 2 * var(--m-gap)), transparent 0);
+    /* two half-planes, each stopping --m-gap/2 short of the line between
+       this seat and its neighbour, so the gap has parallel sides.
+       A linear-gradient's line runs through the box centre (= the square's
+       centre); half its length is |hw*sin| + |hh*cos| of its angle. */
+    --a1: calc(var(--rot) - 180deg / var(--n, 8));
+    --a2: calc(var(--rot) + 180deg / var(--n, 8));
+    --d1: calc(var(--a1) + 90deg);
+    --d2: calc(var(--a2) - 90deg);
+    --h1: calc(max(var(--m-hw) * sin(var(--d1)), -1 * var(--m-hw) * sin(var(--d1)))
+             + max(var(--m-hh) * cos(var(--d1)), -1 * var(--m-hh) * cos(var(--d1))));
+    --h2: calc(max(var(--m-hw) * sin(var(--d2)), -1 * var(--m-hw) * sin(var(--d2)))
+             + max(var(--m-hh) * cos(var(--d2)), -1 * var(--m-hh) * cos(var(--d2))));
+    --wedge:
+      linear-gradient(var(--d1), transparent calc(var(--h1) + var(--m-gap) / 2), #000 0),
+      linear-gradient(var(--d2), transparent calc(var(--h2) + var(--m-gap) / 2), #000 0);
     --hole: radial-gradient(circle at var(--m-hw) var(--m-hh),
         transparent var(--m-in), #000 calc(var(--m-in) + 1px));
   }
+  /* a lone seat is the whole square */
+  #grimoire .circle.size-1 > li { --wedge: linear-gradient(#000, #000); }
 
   /* ---- the seat: its clickable token box, sitting on the art's centre --- */
   #grimoire .circle > li .player,
@@ -254,10 +270,10 @@
   }
   #grimoire .circle > li .player.dead .token .icon::after { filter: grayscale(1) brightness(.6); }
 
-  /* ---- talking: a yellow band across the outer end of the wedge ---------
+  /* ---- talking: a solid yellow bar along the wedge's outer edge --------
      The app sends each player's mic level (--volume, 0–100) to the camera
-     tile, so that tile becomes the band: hidden picture, wedge shape,
-     brightness following the volume. */
+     tile, so that tile becomes the bar: a yellow border round the whole
+     square, cut down to this wedge, shown while the volume is up. */
   #grimoire .circle > li .chat-video {
     display: block !important;
     position: absolute !important;
@@ -269,19 +285,21 @@
     min-width: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+    box-sizing: border-box !important;
     transform: none !important;
-    border: 0 !important;
+    border: var(--m-talk) solid #ffe14d !important;
     border-radius: 10px !important;
-    background: #ffe14d !important;
+    background: none !important;
+    /* a slight soft edge on the inside of the bar */
+    box-shadow: inset 0 0 6px 1px #ffe14dcc !important;
     filter: none !important;
-    opacity: clamp(0, (var(--volume, 0) - 10) / 25, .8);
+    opacity: clamp(0, (var(--volume, 0) - 10) / 10, 1);
+    transition: opacity .15s !important;
     pointer-events: none !important;
     z-index: 7;
-    -webkit-mask: var(--wedge), radial-gradient(circle at var(--m-hw) var(--m-hh),
-        transparent calc(var(--rE) - 40px), #000 calc(var(--rE) - 10px));
+    -webkit-mask: var(--wedge);
     -webkit-mask-composite: source-in;
-            mask: var(--wedge), radial-gradient(circle at var(--m-hw) var(--m-hh),
-        transparent calc(var(--rE) - 40px), #000 calc(var(--rE) - 10px));
+            mask: var(--wedge);
             mask-composite: intersect;
   }
   #grimoire .circle > li .chat-video::before,
@@ -378,8 +396,6 @@
      Real reminders sit on top of it, so they can still be tapped. */
   #grimoire .circle > li .reminders .reminder.add {
     --rOut: calc(var(--tokR) - var(--tok) / 2);
-    --a1: calc(var(--rot) - 180deg / var(--n, 8) + var(--m-gap));
-    --a2: calc(var(--rot) + 180deg / var(--n, 8) - var(--m-gap));
     position: absolute !important;
     /* a square centred on the town square's centre (measured from the
        middle of the reminders box, which sits --remR out along the spoke) */
@@ -539,8 +555,9 @@
   #controls > .icon.session,
   #controls > .menu > svg {
     flex: 1 1 0;
+    min-width: 0 !important;
     box-sizing: border-box !important;
-    width: auto !important;
+    width: 100% !important;
     height: calc(var(--m-top) / 2 - 12px) !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -553,6 +570,10 @@
     background: var(--m-button) !important;
     border: 2px solid var(--m-line) !important;
     border-radius: 8px !important;
+  }
+  #controls > .icon.session {
+    flex: none !important;
+    width: calc((var(--m-side) - 18px) / 2) !important;
   }
   #controls > .icon.session svg { font-size: 22px; }
   #controls > .menu > svg { padding: 14px !important; }
@@ -570,7 +591,11 @@
   /* settings menu: gear in the bar, list opens in the middle */
   #controls > .menu {
     position: static !important;
-    width: auto !important;
+    /* same width as the users button beside it */
+    flex: none !important;
+    width: calc((var(--m-side) - 18px) / 2) !important;
+    min-width: 0 !important;
+    display: flex !important;
     transform: none !important;
     transition: none !important;
     pointer-events: auto !important;

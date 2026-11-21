@@ -1,0 +1,818 @@
+/* =====================================================================
+   BOTC Mobile v2: CSS-only phone layout for botc.app
+   Paste into botc.app's Custom CSS box (or a Stylus userstyle).
+   Only applies to portrait screens up to 767px wide; desktop is untouched.
+   Written against BOTC Online v3.58.2 (no data-v-* hashes are used,
+   so it should survive most app updates).
+
+   Layout, top to bottom:
+     [ storyteller squares ..][ day ][ users ][ gear ]   <- top bar
+     [            town square (wedges)                 ]   <- middle
+     [ VOICE TEXT NPCS BLUFFS CHARS NIGHT 1 NIGHTS    ]   <- tab bar
+     [        big MIC button        ][ deafen ]            <- mute bar
+   Tabs, the settings menu and the users list all open over the middle.
+   ===================================================================== */
+
+@media screen and (max-width: 767.98px) and (orientation: portrait) {
+
+  /* ---- Tuning knobs ------------------------------------------------- */
+  :root {
+    --m-top: 72px;        /* storyteller bar height                       */
+    --m-tabs: 42px;       /* tab bar height                               */
+    --m-mute: 64px;       /* mute bar height (plus iPhone home-bar inset) */
+    --m-ctrl: 104px;      /* width reserved top-right for users + gear    */
+    --m-phase: 86px;      /* width of the day / players-alive badge         */
+    --m-safe: env(safe-area-inset-bottom, 0px);
+
+    --m-bottom: calc(var(--m-tabs) + var(--m-mute) + var(--m-safe));
+    --m-mid: calc(100dvh - var(--m-top) - var(--m-bottom));
+
+    /* town square geometry */
+    --m-edge: 4px;        /* gap between the wedges and the square's edge     */
+    --m-hw: calc(50vw - var(--m-edge));                   /* half width  */
+    --m-hh: calc(var(--m-mid) / 2 - var(--m-edge));       /* half height */
+    --m-in: 48px;         /* centre hole radius (the vote clock lives here)  */
+    --m-gap: 0.8deg;      /* half the gap between neighbouring wedges        */
+
+    --m-panel: #111112f5;
+    --m-line: #000;
+    --m-gold: #ffad00;
+    --m-accent: #55555b;  /* active button (was purple)                      */
+    --m-button: #2e2e31;  /* button / tile base                              */
+    --m-bar: #161617f2;   /* tab bar                                         */
+  }
+
+  /* number of seats, for wedge width */
+  .circle.size-1 { --n: 1; }   .circle.size-2 { --n: 2; }
+  .circle.size-3 { --n: 3; }   .circle.size-4 { --n: 4; }
+  .circle.size-5 { --n: 5; }   .circle.size-6 { --n: 6; }
+  .circle.size-7 { --n: 7; }   .circle.size-8 { --n: 8; }
+  .circle.size-9 { --n: 9; }   .circle.size-10 { --n: 10; }
+  .circle.size-11 { --n: 11; } .circle.size-12 { --n: 12; }
+  .circle.size-13 { --n: 13; } .circle.size-14 { --n: 14; }
+  .circle.size-15 { --n: 15; } .circle.size-16 { --n: 16; }
+  .circle.size-17 { --n: 17; } .circle.size-18 { --n: 18; }
+  .circle.size-19 { --n: 19; } .circle.size-20 { --n: 20; }
+
+  html, body { overscroll-behavior: none; }
+
+  /* =================================================================
+     Page skeleton
+     #grimoire becomes a flex row anchored to the bottom so every
+     aside.tab (from #left and from #grimoire) lines up as one tab bar.
+     ================================================================= */
+  #grimoire {
+    --zoom: min(20vw, 96px) !important;          /* NPC / bluff token size */
+    position: fixed !important;
+    inset: 0 0 calc(var(--m-mute) + var(--m-safe)) 0 !important;
+    width: auto !important;
+    height: auto !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    align-content: stretch !important;
+    justify-content: stretch !important;
+    padding-top: calc(100dvh - var(--m-bottom)) !important; /* push tabs to bottom */
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  #left {
+    display: contents !important;
+  }
+  #left > h1 { display: none !important; }
+
+  /* ---- Town square fills the middle --------------------------------- */
+  #grimoire #center,
+  #app:not(.hook-reveal-grimoire) #grimoire #center {
+    position: fixed !important;
+    top: var(--m-top) !important;
+    left: 0 !important;
+    width: 100vw !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: var(--m-mid) !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+  }
+
+  /* =================================================================
+     Town square: one wedge per seat, running edge to edge
+     Each <li> is un-rotated and stretched over the whole square; every
+     part of a seat is placed with trig from the app's own --rot angle.
+     Distances are measured from the centre of the square.
+     ================================================================= */
+  #grimoire .circle {
+    position: relative !important;
+    width: 100vw !important;
+    height: var(--m-mid) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: none !important;
+  }
+
+  #grimoire .circle > li {
+    position: absolute !important;
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    pointer-events: none !important;
+
+    /* direction of this seat's spoke */
+    --s: sin(var(--rot));
+    --c: cos(var(--rot));
+    --as: max(var(--s), -1 * var(--s), 0.0001);
+    --ac: max(var(--c), -1 * var(--c), 0.0001);
+    --sgnS: clamp(-1, var(--s) * 1000, 1);
+    --sgnC: clamp(-1, var(--c) * 1000, 1);
+    /* distance from the centre to the square's edge along the spoke */
+    --rE: min(var(--m-hw) / var(--as), var(--m-hh) / var(--ac));
+    /* 1 when the spoke ends on the left/right edge, 0 on top/bottom */
+    --onSide: clamp(0, sin(acos(var(--ac)) - atan2(var(--m-hw), var(--m-hh))) * 1000, 1);
+
+    /* token (= where the character art is centred) */
+    --tokScale: 1;
+    --tokR: calc(var(--m-in) + (var(--rE) - var(--m-in)) * 0.55);
+    --tok: calc(var(--tokScale) * min(84px,
+            var(--tokR) * 1.7 * sin(180deg / var(--n, 8)),
+            (var(--rE) - var(--m-in)) * 0.45));
+    --tx: calc(var(--tokR) * var(--s));
+    --ty: calc(var(--tokR) * var(--c) * -1);
+
+    /* reminders: between the centre hole and the token */
+    --remR: calc(var(--m-in) + (var(--tokR) - var(--tok) / 2 - var(--m-in)) / 2 + 4px);
+    --rem: min(22px, var(--remR) * 0.84 * sin(180deg / var(--n, 8)));
+
+    /* wedge colours */
+    --fillA: #fbf3e2; --fillB: #e7d6b1; --fillC: #c4ab7c; --fillD: #8d7347; --fillE: #5e4a2a;
+    --edge: #5c5c60;
+  }
+  #grimoire .circle > li.nominee   { --edge: var(--m-gold); --tokScale: 1.15; }
+  #grimoire .circle > li.nominator { --edge: #8fb3d9; }
+  #grimoire .circle > li:has(.player.dead) {
+    --fillA: #9a948a; --fillB: #827b71; --fillC: #6e685f; --fillD: #4e4943; --fillE: #3a3631;
+    --edge: #555;
+  }
+  #grimoire .circle > li:has(.nameplate.empty) { --edge: #333; }
+
+  /* the wedge shape, used by every layer that fills it
+     (coordinates are inside a box inset --m-edge from the square) */
+  #grimoire .circle > li {
+    --wedge: conic-gradient(
+        from calc(var(--rot) - 180deg / var(--n, 8) + var(--m-gap)) at var(--m-hw) var(--m-hh),
+        #000 0 calc(360deg / var(--n, 8) - 2 * var(--m-gap)), transparent 0);
+    --hole: radial-gradient(circle at var(--m-hw) var(--m-hh),
+        transparent var(--m-in), #000 calc(var(--m-in) + 1px));
+  }
+
+  /* ---- the seat: its clickable token box, sitting on the art's centre --- */
+  #grimoire .circle > li .player,
+  #grimoire.session.has-avatars .circle > li .player,
+  #grimoire.nomination-focus .circle > li.nominee .player {
+    position: absolute !important;
+    left: calc(50% + var(--tx) - var(--tok) / 2) !important;
+    top: calc(50% + var(--ty) - var(--tok) / 2) !important;
+    width: var(--tok) !important;
+    height: var(--tok) !important;
+    margin: 0 !important;
+    transform: none !important;
+    z-index: 6;
+    /* the wedge outline */
+    filter: drop-shadow(0 0 1.5px var(--edge)) drop-shadow(0 0 1px #000);
+  }
+
+  /* parchment fill of the wedge (drawn from the token box, out to the edges) */
+  #grimoire .circle > li .player::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--m-edge) - (50vw + var(--tx) - var(--tok) / 2));
+    top: calc(var(--m-edge) - (var(--m-mid) / 2 + var(--ty) - var(--tok) / 2));
+    width: calc(100vw - 2 * var(--m-edge));
+    height: calc(var(--m-mid) - 2 * var(--m-edge));
+    border-radius: 10px;
+    pointer-events: none;
+    z-index: -1;
+    background: radial-gradient(circle at calc(var(--m-hw) + var(--tx)) calc(var(--m-hh) + var(--ty)),
+        var(--fillA) 0, var(--fillB) calc(var(--tok) * .45), var(--fillC) var(--tok),
+        var(--fillD) calc(var(--tok) * 2.4), var(--fillE) calc(var(--tok) * 4));
+    -webkit-mask: var(--wedge), var(--hole);
+    -webkit-mask-composite: source-in;
+            mask: var(--wedge), var(--hole);
+            mask-composite: intersect;
+  }
+
+  /* the round token disappears: the wedge IS the token */
+  #grimoire .circle > li .player .token {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  #grimoire .circle > li .player .token::before,
+  #grimoire .circle > li .player .token svg.name,
+  #grimoire .circle .token .ability { display: none !important; }
+  #grimoire .circle > li .player .life {
+    background: none !important;
+    border: 0 !important;
+  }
+
+  /* character art: the token's own picture, stretched across the wedge.
+     The app puts the picture inline on .icon; its ::after inherits it. */
+  #grimoire .circle > li .player .token .icon {
+    margin: 0 !important;
+    inset: 0 !important;
+    background-size: 0 0 !important;   /* hide the small copy */
+  }
+  #grimoire .circle > li .player .token .icon::after {
+    content: "";
+    position: absolute;
+    left: calc(var(--m-edge) - (50vw + var(--tx) - var(--tok) / 2));
+    top: calc(var(--m-edge) - (var(--m-mid) / 2 + var(--ty) - var(--tok) / 2));
+    width: calc(100vw - 2 * var(--m-edge));
+    height: calc(var(--m-mid) - 2 * var(--m-edge));
+    pointer-events: none;
+    background-image: inherit;
+    background-repeat: no-repeat;
+    background-size: calc(var(--tok) * 1.9) calc(var(--tok) * 1.9);
+    background-position:
+      calc(var(--m-hw) + var(--tx) - var(--tok) * .95)
+      calc(var(--m-hh) + var(--ty) - var(--tok) * .95);
+    -webkit-mask: var(--wedge), var(--hole);
+    -webkit-mask-composite: source-in;
+            mask: var(--wedge), var(--hole);
+            mask-composite: intersect;
+  }
+  #grimoire .circle > li .player.dead .token .icon::after { filter: grayscale(1) brightness(.6); }
+
+  /* ---- talking: a yellow band across the outer end of the wedge ---------
+     The app sends each player's mic level (--volume, 0–100) to the camera
+     tile, so that tile becomes the band: hidden picture, wedge shape,
+     brightness following the volume. */
+  #grimoire .circle > li .chat-video {
+    display: block !important;
+    position: absolute !important;
+    left: var(--m-edge) !important;
+    top: var(--m-edge) !important;
+    width: calc(100vw - 2 * var(--m-edge)) !important;
+    height: calc(var(--m-mid) - 2 * var(--m-edge)) !important;
+    aspect-ratio: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: #ffe14d !important;
+    filter: none !important;
+    opacity: clamp(0, (var(--volume, 0) - 10) / 25, .8);
+    pointer-events: none !important;
+    z-index: 7;
+    -webkit-mask: var(--wedge), radial-gradient(circle at var(--m-hw) var(--m-hh),
+        transparent calc(var(--rE) - 40px), #000 calc(var(--rE) - 10px));
+    -webkit-mask-composite: source-in;
+            mask: var(--wedge), radial-gradient(circle at var(--m-hw) var(--m-hh),
+        transparent calc(var(--rE) - 40px), #000 calc(var(--rE) - 10px));
+            mask-composite: intersect;
+  }
+  #grimoire .circle > li .chat-video::before,
+  #grimoire .circle > li .chat-video > * { display: none !important; }
+
+  /* ---- name + pronouns: flat against the edge the wedge runs into -------
+     top/bottom edge → horizontal; left/right edge → turned along the edge */
+  #grimoire .circle > li .nameplate-container,
+  #grimoire.session.has-avatars .circle > li .nameplate-container {
+    --sideX: calc(var(--sgnS) * (var(--m-hw) - 15px));
+    --sideY: clamp(-1 * (var(--m-hh) - 50px), var(--rE) * var(--c) * -1, var(--m-hh) - 50px);
+    --tbX: clamp(-1 * (var(--m-hw) - 50px), var(--rE) * var(--s), var(--m-hw) - 50px);
+    --tbY: calc(var(--sgnC) * (var(--m-hh) - 15px) * -1);
+    position: absolute !important;
+    left: calc(50% + var(--onSide) * var(--sideX) + (1 - var(--onSide)) * var(--tbX)) !important;
+    top: calc(50% + var(--onSide) * var(--sideY) + (1 - var(--onSide)) * var(--tbY)) !important;
+    width: auto !important;
+    height: auto !important;
+    aspect-ratio: auto !important;
+    margin: 0 !important;
+    transform: translate(-50%, -50%) rotate(calc(var(--onSide) * var(--sgnS) * 90deg)) !important;
+    filter: none;
+    z-index: 10;
+  }
+  #grimoire .circle > li .nameplate-container .nameplate {
+    position: static !important;
+    top: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    max-width: 80px;
+    padding: 1px 4px !important;
+    font-size: 11px !important;
+    line-height: 1.15 !important;
+    border-radius: 6px !important;
+    background: #000 !important;
+  }
+  #grimoire .circle .nameplate .name {
+    margin-bottom: 0 !important;
+    gap: 2px;
+  }
+  #grimoire .circle .nameplate .name span,
+  #grimoire .circle .nameplate .pronouns {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #grimoire .circle .nameplate .pronouns { font-size: 9px !important; opacity: .8; }
+  #grimoire .circle .nameplate svg { font-size: 9px !important; }
+  #grimoire .circle > li.nominee .nameplate { color: var(--m-gold) !important; }
+  /* cosmetic nameplate wings are too wide for the edge */
+  #grimoire .circle .nameplate::before,
+  #grimoire .circle .nameplate::after { display: none !important; }
+
+  /* ---- reminders: between the centre hole and the art ------------------ */
+  #grimoire .circle > li .reminders,
+  #grimoire .circle > li.stack-reminders .reminders {
+    position: absolute !important;
+    left: calc(50% + var(--remR) * var(--s)) !important;
+    top: calc(50% - var(--remR) * var(--c)) !important;
+    width: calc(2 * var(--remR) * sin(180deg / var(--n, 8)) + var(--rem)) !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: translate(-50%, -50%) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-content: center !important;
+    gap: 1px !important;
+    z-index: 8;
+  }
+  #grimoire .circle > li .reminders .reminder {
+    --reminderZoom: var(--rem) !important;
+    width: var(--rem) !important;
+    margin: 0 !important;
+    transform: none !important;
+    font-size: 6px;
+  }
+  #grimoire .circle > li .reminders .reminder .text { font-size: 6px !important; }
+
+  /* tapped seat floats above its neighbours */
+  #grimoire .circle > li:hover,
+  #grimoire .circle > li:focus-within,
+  #grimoire .circle > li.menu-open { z-index: 60 !important; }
+
+  /* seat pop-up menu: readable size */
+  #grimoire .circle > li .menu {
+    font-size: 13px !important;
+    max-width: 70vw;
+  }
+
+  /* ---- centre of the circle: vote clock + info --------------------- */
+  #grimoire #vote {
+    width: calc(min(var(--m-hw), var(--m-hh)) * 0.62) !important;
+    font-size: 11px !important;
+  }
+  #grimoire #center > .overlay {
+    max-width: 60vw !important;
+    font-size: 12px;
+  }
+
+  /* town info box (players / alive / team counts): bottom-left corner */
+  #grimoire #center .town-info {
+    position: absolute !important;
+    left: 4px !important;
+    bottom: 4px !important;
+    top: auto !important;
+    right: auto !important;
+    transform: scale(.7) !important;
+    transform-origin: bottom left !important;
+  }
+  #grimoire #center .town-info .edition { display: none !important; }
+  #grimoire #center .town-info .box,
+  #grimoire #center .town-info .timer { position: static !important; max-width: none !important; }
+
+  /* =================================================================
+     Top bar: storytellers as squares
+     ================================================================= */
+  #left ul.storytellers {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: calc(var(--m-ctrl) + var(--m-phase)) !important;
+    height: var(--m-top) !important;
+    margin: 0 !important;
+    padding: 6px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    z-index: 70 !important;
+    pointer-events: auto !important;
+    background: linear-gradient(#000000d9, #00000099);
+    border-bottom: 2px solid var(--m-line);
+  }
+  #left ul.storytellers > li {
+    position: relative !important;
+    flex: none !important;
+    width: calc(var(--m-top) - 12px) !important;
+    height: calc(var(--m-top) - 12px) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 8px;
+    background: var(--m-button);
+    border: 2px solid var(--m-line);
+    overflow: hidden;
+  }
+  #left ul.storytellers > li .player-avatar {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background-size: cover !important;
+    background-position: center !important;
+  }
+  #left ul.storytellers > li > .token,
+  #left ul.storytellers > li > .reminders,
+  #left ul.storytellers > li > .overlay { display: none !important; }
+  #left ul.storytellers > li .nameplate {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    transform: none !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 1px 2px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #000000b3 !important;
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+  }
+  #left ul.storytellers > li .nameplate::before,
+  #left ul.storytellers > li .nameplate::after,
+  #left ul.storytellers > li .nameplate .pronouns { display: none !important; }
+  #left ul.storytellers > li .nameplate .name {
+    margin: 0 !important;
+    overflow: hidden;
+  }
+  #left ul.storytellers > li .nameplate .name span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #left ul.storytellers > li .nameplate svg { font-size: 9px !important; }
+
+  /* ---- Top-right: users (connection) + settings ----------------------- */
+  #controls {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    left: auto !important;
+    width: var(--m-ctrl) !important;
+    height: var(--m-top) !important;
+    min-height: 0 !important;
+    padding: 6px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    z-index: 105 !important;
+    background: linear-gradient(#000000d9, #00000099);
+    border-bottom: 2px solid var(--m-line);
+  }
+  #controls > .icon.session,
+  #controls > .menu > svg {
+    flex: none;
+    box-sizing: border-box !important;
+    width: 44px !important;
+    height: calc(var(--m-top) - 12px) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    font-size: 13px !important;
+    background: var(--m-button) !important;
+    border: 2px solid var(--m-line) !important;
+    border-radius: 8px !important;
+  }
+  #controls > .icon.session svg { font-size: 18px; }
+  #controls > .menu > svg { padding: 14px 10px !important; }
+  #controls > .icon:not(.chat):not(.session) { display: none !important; } /* misc icons */
+  #controls #notifications {
+    position: fixed !important;
+    top: calc(var(--m-top) + 4px);
+    left: 4px;
+    right: 4px;
+    z-index: 130;
+    pointer-events: none;
+  }
+  #controls #notifications > * { pointer-events: auto; }
+
+  /* settings menu: gear in the bar, list opens in the middle */
+  #controls > .menu {
+    position: static !important;
+    width: auto !important;
+    transform: none !important;
+    transition: none !important;
+    pointer-events: auto !important;
+  }
+  #controls > .menu:not(.open) > ul { display: none !important; }
+  #controls > .menu.open > svg { background: var(--m-accent) !important; }
+  #controls > .menu.open > ul {
+    position: fixed !important;
+    top: calc(var(--m-top) + 6px) !important;
+    left: 6px !important;
+    right: 6px !important;
+    max-height: calc(var(--m-mid) - 12px) !important;
+    overflow-y: auto !important;
+    border-radius: 12px !important;
+    z-index: 120 !important;
+    font-size: 15px;
+    text-align: left;
+  }
+  #controls > .menu.open > ul li { padding: 8px 10px !important; }
+  #controls > .menu.open > ul li.tabs { padding: 0 !important; }
+  #controls > .menu.open > ul li.tabs svg { height: 30px !important; }
+
+  /* =================================================================
+     Bottom: big mute button (plus smaller deafen)
+     ================================================================= */
+  #controls > .icon.chat {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: calc(var(--m-mute) + var(--m-safe)) !important;
+    padding: 6px 8px calc(6px + var(--m-safe)) !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: row-reverse !important;   /* mic first, deafen second */
+    justify-content: center !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    background: #000000e6;
+    border-top: 2px solid var(--m-line);
+    z-index: 110 !important;
+  }
+  #controls > .icon.chat > svg {
+    box-sizing: content-box !important;
+    height: 26px !important;
+    width: 34px !important;
+    font-size: 26px !important;
+    padding: calc((var(--m-mute) - 12px - 30px) / 2) 0 !important;
+    padding-inline: 14px !important;
+    margin: 0 !important;
+    background: var(--m-button);
+    border: 2px solid #000;
+    border-radius: 14px;
+  }
+  /* the mic toggle is the big one */
+  #controls > .icon.chat > svg:not(.mute) {
+    padding-inline: calc(28vw - 17px) !important;
+    background: linear-gradient(#3b2a00, #1d1500);
+    border-color: #6b4c00;
+  }
+  #controls > .icon.chat > svg:not(.mute):has(.fa-microphone-slash) {
+    background: linear-gradient(#5a1010, #2a0505);
+    border-color: #a01818;
+  }
+  #controls > .icon.chat > svg > svg {
+    width: 34px !important;
+    height: 26px !important;
+    font-size: 26px !important;
+    overflow: visible !important;
+  }
+
+  /* =================================================================
+     Tab bar: every aside.tab becomes one equal-width button
+     ================================================================= */
+  #grimoire aside.tab,
+  #left aside.tab,
+  #left aside.tab.open {
+    position: relative !important;
+    inset: auto !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    height: var(--m-tabs) !important;
+    max-height: none !important;
+    margin: 0 !important;
+    transform: none !important;
+    opacity: 1 !important;
+    display: flex !important;
+    align-items: stretch !important;
+    line-height: 1 !important;
+    z-index: 60 !important;
+    transition: none !important;
+  }
+  #grimoire aside.tab.night-order.first { order: 5; }
+  #grimoire aside.tab.night-order.other { order: 6; }
+
+  #grimoire aside.tab > .label {
+    position: static !important;
+    inset: auto !important;
+    flex: 1 1 auto !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 2px 1px !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    writing-mode: horizontal-tb !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-align: center !important;
+    text-transform: uppercase !important;
+    font-size: 9.5px !important;
+    letter-spacing: 0 !important;
+    line-height: 1.05 !important;
+    color: #fff !important;
+    background: var(--m-bar) !important;
+    border: 0 !important;
+    border-top: 2px solid var(--m-line) !important;
+    border-right: 1px solid #000 !important;
+    border-radius: 0 !important;
+  }
+  #grimoire aside.tab > .label svg { margin: 0 !important; font-size: 9px !important; }
+  #grimoire aside.tab > .label em {
+    writing-mode: horizontal-tb !important;
+    min-width: 14px !important;
+    min-height: 14px !important;
+    margin: 0 !important;
+    font-size: 9px !important;
+    line-height: 14px;
+  }
+
+  /* short one-line labels, so all seven tabs fit at equal width.
+     (These are fixed English words: they replace the app's translated label.) */
+  #grimoire aside.tab > .label { font-size: 0 !important; }
+  #grimoire aside.tab > .label::before {
+    font-size: 10px;
+    letter-spacing: .02em;
+    white-space: nowrap;
+  }
+  #grimoire aside.tab:has(> #tab-chat) > .label::before        { content: "VOICE"; }
+  #grimoire aside.tab:has(> #tab-text) > .label::before        { content: "TEXT"; }
+  #grimoire aside.tab:has(> #tab-npcs) > .label::before        { content: "NPCS"; }
+  #grimoire aside.tab:has(> #tab-bluffs) > .label::before      { content: "BLUFFS"; }
+  #grimoire aside.tab.character > .label::before               { content: "CHARS"; }
+  #grimoire aside.tab.night-order.first > .label::before       { content: "NIGHT 1"; }
+  #grimoire aside.tab.night-order.other > .label::before       { content: "NIGHTS"; }
+  #grimoire aside.tab.open > .label,
+  #grimoire aside.tab.character-open > .label {
+    color: #000 !important;
+    background: linear-gradient(#fff, var(--m-gold)) !important;
+  }
+
+  /* ---- Panels: hidden unless their tab is open, then over the middle -- */
+  #grimoire aside.tab:not(.open):not(.character-open) > .container,
+  #grimoire #left aside.tab:not(.open):not(.character-open) > .container {
+    display: none !important;
+  }
+  #grimoire aside.tab > .container,
+  #grimoire aside.tab > .container.positioned {
+    position: fixed !important;
+    top: calc(var(--m-top) + 6px) !important;
+    bottom: calc(var(--m-bottom) + 6px) !important;
+    left: 6px !important;
+    right: 6px !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    resize: none !important;
+    box-sizing: border-box !important;
+    overflow: auto !important;
+    border: 3px solid var(--m-line) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 0 20px #000 !important;
+    cursor: default !important;
+    z-index: 90 !important;
+    -webkit-user-drag: none !important;
+  }
+  /* chat-style panels get a dark backing and stick to the bottom,
+     so the square stays partly visible while you talk / vote */
+  #grimoire #left aside.tab > .container {
+    background: var(--m-panel) !important;
+    top: auto !important;
+    max-height: calc(var(--m-mid) - 12px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  #grimoire #left aside.tab > #tab-text { height: 50% !important; height: calc(var(--m-mid) * .5) !important; }
+  #grimoire #left aside.tab > #tab-chat { min-height: 30% !important; }
+  #grimoire #left aside.tab > .container > section {
+    width: 100% !important;
+    height: auto !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: auto !important;
+    padding: 8px !important;
+    box-sizing: border-box !important;
+  }
+  #grimoire #left aside.tab > .container > footer {
+    position: static !important;
+    max-width: none !important;
+    padding: 6px !important;
+  }
+  /* NPC + bluff token panels: wrap tokens to the panel width */
+  #grimoire #left aside.tab > .container ul.tokens,
+  #left #tab-bluffs ul {
+    max-width: none !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 6px;
+    outline: 0 !important;
+    background: none !important;
+  }
+  /* character + night sheets: full middle, scrolling */
+  #grimoire aside.character.tab > .container,
+  #grimoire aside.night-order.tab > .container {
+    padding-right: 0 !important;
+    font-size: 14px !important;
+  }
+  /* pop-out / zoom buttons make no sense on a phone */
+  #grimoire aside.tab .button.popout,
+  #grimoire aside.night-order.tab footer .button[title*="Pop"] { display: none !important; }
+
+  /* stop iOS zooming when a text box is focused */
+  #grimoire input, #grimoire textarea { font-size: 16px !important; }
+
+  /* =================================================================
+     Modals (users list, roles, etc.) and the phase / timer badge
+     ================================================================= */
+  .modal-backdrop {
+    top: var(--m-top) !important;
+    bottom: var(--m-bottom) !important;
+    padding: 6px !important;
+    box-sizing: border-box !important;
+  }
+  .modal,
+  .roles .modal,
+  .characters .modal {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    overflow: auto !important;
+  }
+
+  /* phase / players-alive / timer: in the top bar, left of the users button */
+  #version {
+    position: fixed !important;
+    top: 0 !important;
+    right: var(--m-ctrl) !important;
+    bottom: auto !important;
+    left: auto !important;
+    width: var(--m-phase) !important;
+    height: var(--m-top) !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: flex-end !important;
+    padding: 2px 6px !important;
+    border-radius: 0 !important;
+    border-bottom: 2px solid var(--m-line) !important;
+    font-size: 10px !important;
+    line-height: 1.25 !important;
+    background: linear-gradient(#000000d9, #00000099) !important;
+    z-index: 106 !important;
+  }
+  #version .version { display: none !important; }
+  #version .timer {
+    position: static !important;
+    max-width: none !important;
+    margin: 0 0 2px !important;
+    padding: 1px 5px !important;
+    font-size: 12px !important;
+    display: inline-block;
+  }
+}

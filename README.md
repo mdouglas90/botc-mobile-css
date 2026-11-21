@@ -10,7 +10,7 @@ It only applies on portrait screens up to 767px wide, so the desktop layout is u
 2. Open **Settings → Custom CSS**.
 3. Paste in the contents of [`botc-mobile.css`](botc-mobile.css).
 
-Raw file: https://raw.githubusercontent.com/mdouglas90/botc-mobile-css/main/botc-mobile.css
+Stylesheet link: https://css.choobino.net/botc-mobile.css
 
 ## Layout
 

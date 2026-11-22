@@ -21,6 +21,7 @@
     --m-top: 144px;       /* storyteller bar height                       */
     --m-tabs: 42px;       /* tab bar height                               */
     --m-mute: 64px;       /* mute bar height (plus iPhone home-bar inset) */
+    --m-hand: 56px;       /* each small mute-bar button: hand, leave, deafen */
     --m-side: 160px;      /* top-right block: users + gear over the day /
                              players-alive badge                          */
     --m-safe: env(safe-area-inset-bottom, 0px);
@@ -629,7 +630,21 @@
     transition: none !important;
     pointer-events: auto !important;
   }
-  #controls > .menu:not(.open) > ul { display: none !important; }
+  /* closed menu: the list stays in the page (so the hand button below can
+     use one of its items) but takes no room and shows nothing else */
+  #controls > .menu:not(.open) > ul {
+    display: block !important;
+    flex: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+  }
+  #controls > .menu:not(.open) > ul > li { display: none !important; }
   #controls > .menu.open > svg { background: var(--m-accent) !important; }
   #controls > .menu.open > ul {
     position: fixed !important;
@@ -648,7 +663,10 @@
   #controls > .menu.open > ul li.tabs svg { height: 30px !important; }
 
   /* =================================================================
-     Bottom: big mute button (plus smaller deafen)
+     Bottom bar:  [ hand ][ ====== mute / unmute ====== ][ leave ][ deafen ]
+     Each small button is --m-hand wide, 8px apart; the mic takes the rest.
+     Mic + deafen are the app's own bar; hand and leave are other elements
+     placed into their slots (see below).
      ================================================================= */
   #controls > .icon.chat {
     position: fixed !important;
@@ -656,16 +674,33 @@
     right: 0 !important;
     bottom: 0 !important;
     height: calc(var(--m-mute) + var(--m-safe)) !important;
-    padding: 6px 8px calc(6px + var(--m-safe)) !important;
+    /* left: room for the hand */
+    padding: 6px 8px calc(6px + var(--m-safe)) calc(16px + var(--m-hand)) !important;
     box-sizing: border-box !important;
     display: flex !important;
     flex-direction: row-reverse !important;   /* mic first, deafen second */
-    justify-content: center !important;
+    justify-content: flex-end !important;
     align-items: stretch !important;
     gap: 8px !important;
+    /* the bar's backing is drawn by #grimoire::before (below), so the
+       leave button, which lives inside #grimoire, can show through */
+    background: none !important;
+    border: 0 !important;
+    z-index: 110 !important;
+    pointer-events: none !important;   /* taps in the gaps reach the leave button */
+  }
+  #controls > .icon.chat > svg { pointer-events: auto !important; }
+  #grimoire::before {
+    content: "";
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(var(--m-mute) + var(--m-safe));
+    box-sizing: border-box;
     background: #000000e6;
     border-top: 2px solid var(--m-line);
-    z-index: 110 !important;
+    pointer-events: none;
   }
   #controls > .icon.chat > svg {
     box-sizing: content-box !important;
@@ -673,22 +708,147 @@
     width: 34px !important;
     font-size: 26px !important;
     padding: calc((var(--m-mute) - 12px - 30px) / 2) 0 !important;
-    padding-inline: 14px !important;
+    /* 34px icon + 2px borders, centred in --m-hand */
+    padding-inline: calc((var(--m-hand) - 38px) / 2) !important;
     margin: 0 !important;
     background: var(--m-button);
     border: 2px solid #000;
     border-radius: 14px;
   }
-  /* the mic toggle is the big one */
+  /* deafen: leave a slot for the leave button between it and the mic */
+  #controls > .icon.chat > svg.mute { margin-left: calc(var(--m-hand) + 8px) !important; }
+  /* the mic toggle is the big one: everything the other three don't use */
   #controls > .icon.chat > svg:not(.mute) {
-    padding-inline: calc(28vw - 17px) !important;
+    padding-inline: calc((100vw - 3 * var(--m-hand) - 40px - 38px) / 2) !important;
     background: linear-gradient(#3b2a00, #1d1500);
     border-color: #6b4c00;
+  }
+
+  /* ---- leave voice room: between the mic and deafen -------------------
+     The app's leave icon sits on the room you're in, inside the Voice
+     panel. The panel now stays in the page (invisible) while its tab is
+     closed, and that icon is pinned into the bar. Out of a room, a faded
+     stand-in (#grimoire::after) fills the slot. */
+  #grimoire #left aside.tab:not(.open) > #tab-chat {
+    display: flex !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  #grimoire #tab-chat li.active:not(.prompt):not(.info) > .title > svg.leave,
+  #grimoire::after {
+    position: fixed !important;
+    right: calc(16px + var(--m-hand)) !important;
+    bottom: calc(6px + var(--m-safe)) !important;
+    left: auto !important;
+    top: auto !important;
+    width: var(--m-hand) !important;
+    height: calc(var(--m-mute) - 12px) !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    border: 2px solid #000;
+    border-radius: 14px;
+    background: var(--m-button);
+  }
+  #grimoire #tab-chat li.active:not(.prompt):not(.info) > .title > svg.leave {
+    padding: 12px 13px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    filter: none !important;
+    color: #fff !important;
+    z-index: 5;
+  }
+  #grimoire::after {
+    content: "\21AA";          /* ↪, faded: not in a room */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #ffffff40;
+    pointer-events: none;
   }
   #controls > .icon.chat > svg:not(.mute):has(.fa-microphone-slash) {
     background: linear-gradient(#5a1010, #2a0505);
     border-color: #a01818;
   }
+  /* ---- raise hand / cast vote: left end of the mute bar ----------------
+     The app's only on-screen hand control is the "Raise hand  Space" item
+     in the gear menu's Shortcuts tab, which exists only while that tab is
+     the selected one. So:
+       - Shortcuts tab selected: that item itself becomes the button
+         (during a nomination the app turns it into "Cast vote").
+       - another tab selected: the same spot shows the Shortcuts tab icon;
+         one tap selects it and the real hand button appears in its place. */
+  #controls > .menu:not(.open) > ul > li:has(> em:empty),
+  #controls > .menu:not(.open) > ul > li.tabs:not(.shortcuts) {
+    display: flex !important;
+    position: fixed !important;
+    left: 8px !important;
+    bottom: calc(6px + var(--m-safe)) !important;   /* level with the mic */
+    width: var(--m-hand) !important;
+    height: calc(var(--m-mute) - 12px) !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 2px !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    z-index: 115 !important;
+    pointer-events: auto !important;
+    cursor: pointer;
+    color: #fff !important;
+    font-size: 11px !important;
+    line-height: 1.1 !important;
+    text-align: center !important;
+    background: var(--m-button) !important;
+    border: 2px solid var(--m-line) !important;
+    border-radius: 14px !important;
+  }
+  /* the real button */
+  #controls > .menu:not(.open) > ul > li:has(> em:empty) > em { display: none !important; }
+  #controls > .menu:not(.open) > ul > li:has(> em:empty) > :not(em) {
+    pointer-events: none !important;    /* a tap on the icon raises the hand
+                                           instead of opening the icon picker */
+  }
+  #controls > .menu:not(.open) > ul > li:has(> em:empty) > svg.raise,
+  #controls > .menu:not(.open) > ul > li:has(> em:empty) > span.role,
+  #controls > .menu:not(.open) > ul > li:has(> em:empty) > span.cosmetic {
+    width: 26px !important;
+    height: 26px !important;
+    flex: none !important;
+    margin: 0 !important;
+  }
+  /* "Cast vote" (no label span): gold, it matters right now */
+  #controls > .menu:not(.open) > ul > li:has(> em:empty):not(:has(> span)) {
+    border-color: var(--m-gold) !important;
+    color: var(--m-gold) !important;
+    font-size: 13px !important;
+    font-weight: bold;
+  }
+  #controls > .menu:not(.open) > ul > li.disabled:has(> em:empty) { opacity: .45; }
+  /* the stand-in: the Shortcuts tab icon, covering the whole button */
+  #controls > .menu:not(.open) > ul > li.tabs:not(.shortcuts) > svg:not(.shortcuts) { display: none !important; }
+  #controls > .menu:not(.open) > ul > li.tabs:not(.shortcuts) > svg.shortcuts {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    opacity: 0 !important;
+    border: 0 !important;
+    padding: 0 !important;
+  }
+  #controls > .menu:not(.open) > ul > li.tabs:not(.shortcuts)::before {
+    content: "\270B";
+    font-size: 22px;
+    opacity: .6;
+  }
+  #controls > .menu:not(.open) > ul > li.tabs:not(.shortcuts)::after {
+    content: "Tap to set up";
+    font-size: 10px;
+    color: #aaa;
+  }
+
   #controls > .icon.chat > svg > svg {
     width: 34px !important;
     height: 26px !important;

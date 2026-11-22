@@ -133,9 +133,13 @@
     transform: none !important;
     pointer-events: none !important;
 
-    /* direction of this seat's spoke */
-    --s: sin(var(--rot));
-    --c: cos(var(--rot));
+    /* direction of this seat's spoke. The app rounds --rot to whole
+       degrees (7 seats: 51, 103, 154...), which made neighbouring wedge
+       edges miss each other and the gaps taper; snap it back to an exact
+       multiple of 360°/n. */
+    --seat: round(var(--rot), 360deg / var(--n, 8));
+    --s: sin(var(--seat));
+    --c: cos(var(--seat));
     --as: max(var(--s), -1 * var(--s), 0.0001);
     --ac: max(var(--c), -1 * var(--c), 0.0001);
     --sgnS: clamp(-1, var(--s) * 1000, 1);
@@ -177,8 +181,8 @@
        this seat and its neighbour, so the gap has parallel sides.
        A linear-gradient's line runs through the box centre (= the square's
        centre); half its length is |hw*sin| + |hh*cos| of its angle. */
-    --a1: calc(var(--rot) - 180deg / var(--n, 8));
-    --a2: calc(var(--rot) + 180deg / var(--n, 8));
+    --a1: calc(var(--seat) - 180deg / var(--n, 8));
+    --a2: calc(var(--seat) + 180deg / var(--n, 8));
     --d1: calc(var(--a1) + 90deg);
     --d2: calc(var(--a2) - 90deg);
     --h1: calc(max(var(--m-hw) * sin(var(--d1)), -1 * var(--m-hw) * sin(var(--d1)))
@@ -538,6 +542,26 @@
     text-overflow: ellipsis;
   }
   #left ul.storytellers > li .nameplate svg { font-size: 9px !important; }
+
+  /* storyteller pop-up menu: the app opens it beside the square, where the
+     square's clipping hides it; drop it below the top bar instead */
+  #left ul.storytellers > li > ul.menu {
+    position: fixed !important;
+    top: calc(var(--m-top) + 4px) !important;
+    left: 6px !important;
+    right: auto !important;
+    bottom: auto !important;
+    max-width: calc(100vw - 12px) !important;
+    z-index: 90 !important;
+    padding: 4px 0 !important;
+    font-size: 16px !important;
+    background: #000000eb !important;
+    border: 2px solid var(--m-line) !important;
+    border-radius: 10px !important;
+  }
+  #left ul.storytellers > li > ul.menu::before { display: none !important; }
+  #left ul.storytellers > li > ul.menu > li { padding: 10px 16px !important; }
+  #left ul.storytellers > li.menu-open { border-color: var(--m-gold) !important; }
 
   /* ---- Top-right: users (connection) + settings ----------------------- */
   #controls {

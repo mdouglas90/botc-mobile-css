@@ -19,7 +19,7 @@
   /* ---- Tuning knobs ------------------------------------------------- */
   :root {
     --m-top: 144px;       /* storyteller bar height                       */
-    --m-tabs: 42px;       /* tab bar height                               */
+    --m-tabs: 63px;       /* tab bar height                               */
     --m-mute: 64px;       /* mute bar height (plus iPhone home-bar inset) */
     --m-hand: 56px;       /* each small mute-bar button: hand, leave, deafen */
     --m-side: 160px;      /* top-right block: users + gear over the day /
@@ -214,6 +214,10 @@
     height: var(--tok) !important;
     margin: 0 !important;
     transform: none !important;
+    /* the app eases a seat's width/top/margin over .25s; here every frame of
+       that redraws a whole screen-sized wedge, which drops frames elsewhere
+       (the vote clock) */
+    transition: none !important;
     z-index: 6;
     /* the wedge outline */
     filter: drop-shadow(0 0 1.5px var(--edge)) drop-shadow(0 0 1px #000);
@@ -251,6 +255,8 @@
   #grimoire .circle > li .player .token::before,
   #grimoire .circle > li .player .token svg.name,
   #grimoire .circle .token .ability { display: none !important; }
+  /* night-order leaves, reminder leaves and the setup flower: not on the art */
+  #grimoire .circle > li .player .token > span[class*="leaf-"] { display: none !important; }
   #grimoire .circle > li .player .life {
     background: none !important;
     border: 0 !important;
@@ -448,6 +454,15 @@
     width: calc(min(var(--m-hw), var(--m-hh)) * 0.62) !important;
     font-size: 11px !important;
   }
+  /* vote clock hands: the app's own motion, kept exactly (it rotates one
+     seat per step, ease-in-out, over the vote speed minus 100ms, set inline).
+     Each hand just gets its own GPU layer, so the wedges repainting under it
+     can't make it skip frames. */
+  #grimoire #vote .clock .arrows span {
+    transition-property: transform !important;
+    transition-timing-function: ease-in-out !important;
+    will-change: transform;
+  }
   #grimoire #center > .overlay {
     max-width: 60vw !important;
     font-size: 12px;
@@ -516,6 +531,33 @@
     background-size: cover !important;
     background-position: center !important;
   }
+  /* talking: the same yellow bar as a player's wedge, all the way round the
+     square (the app's own outline only peeked out of one corner) */
+  #left ul.storytellers > li .chat-video {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    aspect-ratio: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    border: var(--m-talk) solid #ffe14d !important;
+    border-radius: 6px !important;
+    background: none !important;
+    box-shadow: inset 0 0 6px 1px #ffe14dcc !important;
+    filter: none !important;
+    opacity: clamp(0, (var(--volume, 0) - 10) / 10, 1);
+    transition: opacity .15s !important;
+    pointer-events: none !important;
+    z-index: 3;
+  }
+  #left ul.storytellers > li .chat-video::before,
+  #left ul.storytellers > li .chat-video > *,
+  #left ul.storytellers > li .player::after { display: none !important; }
   #left ul.storytellers > li > .token,
   #left ul.storytellers > li > .reminders,
   #left ul.storytellers > li > .overlay { display: none !important; }

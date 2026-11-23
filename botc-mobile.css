@@ -988,13 +988,15 @@
   #grimoire aside.tab.night-order.first > .label::before       { content: "NIGHT 1"; }
   #grimoire aside.tab.night-order.other > .label::before       { content: "NIGHTS"; }
   #grimoire aside.tab.open > .label,
-  #grimoire aside.tab.character-open > .label {
+  #grimoire aside.tab.mid > .label,
+  #grimoire aside.tab.character-open > .label,
+  #grimoire aside.tab.character-mid > .label {
     color: #000 !important;
     background: linear-gradient(#fff, var(--m-gold)) !important;
   }
 
   /* ---- Panels: hidden unless their tab is open, then over the middle -- */
-  #grimoire aside.tab:not(.open):not(.character-open) > .container,
+  #grimoire aside.tab:not(.open):not(.mid):not(.character-open):not(.character-mid) > .container,
   #grimoire #left aside.tab:not(.open):not(.character-open) > .container {
     display: none !important;
   }
@@ -1069,6 +1071,53 @@
     padding-right: 0 !important;
     font-size: 14px !important;
   }
+  /* ---- CHARS / NIGHT 1 / NIGHTS half open ("mid") ---------------------
+     Like desktop, these tabs cycle closed -> half open -> fully open ->
+     closed, one step per tap (a tap inside the half-open sheet opens it
+     fully). Half open is a narrow column on the right: icons and names
+     only, the town square still visible beside it. */
+  #grimoire aside.tab.mid > .container,
+  #grimoire aside.tab.character-mid > .container {
+    left: auto !important;
+    width: min(52vw, 220px) !important;
+  }
+  /* characters: team label + icon + name, no ability text */
+  #grimoire aside.tab.character-mid .team ul { width: 88% !important; }
+  #grimoire aside.tab.character-mid .team aside { width: 12% !important; }
+  #grimoire aside.tab.character-mid .team ul li { font-size: 12px !important; }
+  #grimoire aside.tab.character-mid .team ul li > .icon {
+    width: 40px !important;
+    margin: -4px 0 !important;
+  }
+  #grimoire aside.tab.character-mid .team .role {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+  #grimoire aside.tab.character-mid .team .name {
+    width: auto !important;
+    flex: 1 1 auto !important;
+    margin-right: 4px !important;
+  }
+  #grimoire aside.tab.character-mid .team .ability,
+  #grimoire aside.tab.character-mid .team .almanac { display: none !important; }
+  /* night order: wake marker + icon + name (+ who has it), no reminder text */
+  #grimoire aside.tab.mid li { font-size: 12px !important; }
+  #grimoire aside.tab.mid li > .token { width: 24px !important; }
+  #grimoire aside.tab.mid li > .icon {
+    width: 40px !important;
+    margin: -4px 0 !important;
+  }
+  #grimoire aside.tab.mid li > .name {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    text-align: left !important;
+    padding: 2px 4px 0 2px !important;
+  }
+  #grimoire aside.tab.mid li > .reminder,
+  #grimoire aside.tab.mid footer { display: none !important; }
+
   /* pop-out / zoom buttons make no sense on a phone */
   #grimoire aside.tab .button.popout,
   #grimoire aside.night-order.tab footer .button[title*="Pop"] { display: none !important; }

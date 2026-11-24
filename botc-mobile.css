@@ -288,7 +288,51 @@
             mask: var(--wedge), var(--hole);
             mask-composite: intersect;
   }
-  #grimoire .circle > li .player.dead .token .icon::after { filter: grayscale(1) brightness(.6); }
+
+  /* ---- end-of-game reveal ---------------------------------------------
+     The app flips every token face down (staggered by --delay), and as the
+     storyteller reveals each player (.player.revealed) flips it back with a
+     bright, blurred flash. Here the art fills the whole wedge, so the app's
+     3D flip and 2x zoom would fling it across the square; instead:
+       face down: no art, the wedge darkened like the token's back, with
+                  the app's own spotlight flash running round the circle
+       revealed:  the wedge brightens and the art flashes in */
+  #app.hook-reveal-grimoire #grimoire .circle > li .player .token,
+  #app.hook-reveal-grimoire #grimoire .circle > li .player .token .icon {
+    transform: none !important;
+    animation: none !important;
+  }
+  #app.hook-reveal-grimoire #grimoire .circle > li .player.revealed .token .icon { filter: none !important; }
+  #app.hook-reveal-grimoire #grimoire .circle > li .player:not(.revealed)::before {
+    filter: brightness(.3);
+    animation: 1s linear forwards spotLife;          /* the app's keyframes */
+    animation-delay: calc(var(--delay, 0s) * 2 + 1s);
+  }
+  #app.hook-reveal-grimoire #grimoire .circle > li .player.revealed::before {
+    animation: .25s linear forwards m-reveal-fill;
+  }
+  #app.hook-reveal-grimoire #grimoire .circle > li .player.revealed .token .icon::after {
+    animation: .5s linear forwards m-reveal-art;
+  }
+  @keyframes m-reveal-fill {
+    from { filter: brightness(.3); }
+    to   { filter: brightness(1); }
+  }
+  @keyframes m-reveal-art {
+    0%   { opacity: 0; filter: blur(5px) brightness(2); }
+    50%  { opacity: 1; filter: blur(5px) brightness(2); }
+    100% { opacity: 1; filter: none; }
+  }
+  /* "Good wins" / "Evil wins": the app sizes it from the screen's short
+     side (3vmin), which is tiny on a phone; size it from the square */
+  #grimoire #center #reveal .result { font-size: calc(min(var(--m-hw), var(--m-hh)) * .09) !important; }
+  #grimoire #center #reveal .info { max-width: 80vw; font-size: 13px; }
+  /* storyteller's buttons: once the result shows, sit just under it
+     (the app's 20vh push only moved them halfway on a phone) */
+  #grimoire #center #reveal.game-result .info {
+    margin-top: 0 !important;
+    top: calc(100% + 8px);
+  }
 
   /* ---- talking: a solid yellow bar along the wedge's outer edge --------
      The app sends each player's mic level (--volume, 0–100) to the camera
